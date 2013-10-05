@@ -64,7 +64,7 @@ struct HeaderBlock {
 	/// replication base URL (from Osmosis' configuration.txt file)
 	Nullable!(string) osmosis_replication_base_url;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name bbox
 		static if (is(HeaderBBox == struct)) {
@@ -103,7 +103,12 @@ struct HeaderBlock {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static HeaderBlock Deserialize(ref ubyte[] manip, bool isroot=true) {return HeaderBlock(manip,isroot);}
+	static HeaderBlock Deserialize(ubyte[] manip) {
+		return HeaderBlock(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -123,7 +128,7 @@ struct HeaderBlock {
 						   to!(string)(wireType) ~
 						   " for variable type HeaderBBox");
 
-					bbox = HeaderBBox.Deserialize(input,false);
+					bbox = HeaderBBox(input,false);
 				} else static if (is(HeaderBBox == enum)) {
 					if (wireType == WireType.varint) {
 						bbox = cast(HeaderBBox)
@@ -201,11 +206,11 @@ struct HeaderBlock {
 				   fromByteString!(string)(input);
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 	}
@@ -221,9 +226,6 @@ struct HeaderBlock {
 		if (!merger.osmosis_replication_base_url.isNull) osmosis_replication_base_url = merger.osmosis_replication_base_url;
 	}
 
-	static HeaderBlock opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }
 /// The bounding box field in the OSM header. BBOX, as used in the OSM
 /// header. Units are always in nanodegrees -- they do not obey
@@ -240,7 +242,7 @@ struct HeaderBBox {
 	///
 	Nullable!(long) bottom;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name left
 		ret ~= toSInt(left.get(),1);
@@ -260,7 +262,12 @@ struct HeaderBBox {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static HeaderBBox Deserialize(ref ubyte[] manip, bool isroot=true) {return HeaderBBox(manip,isroot);}
+	static HeaderBBox Deserialize(ubyte[] manip) {
+		return HeaderBBox(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -306,11 +313,11 @@ struct HeaderBBox {
 				bottom = fromSInt!(long)(input);
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 		if (left.isNull) throw new Exception("Did not find a left in the message parse.");
@@ -326,9 +333,6 @@ struct HeaderBBox {
 		if (!merger.bottom.isNull) bottom = merger.bottom;
 	}
 
-	static HeaderBBox opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }
 struct PrimitiveBlock {
 	// deal with unknown fields
@@ -346,7 +350,7 @@ struct PrimitiveBlock {
 	/// Granularity of dates, normally represented in units of milliseconds since the 1970 epoch.
 	Nullable!(int) date_granularity = 1000;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name stringtable
 		static if (is(StringTable == struct)) {
@@ -383,7 +387,12 @@ struct PrimitiveBlock {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static PrimitiveBlock Deserialize(ref ubyte[] manip, bool isroot=true) {return PrimitiveBlock(manip,isroot);}
+	static PrimitiveBlock Deserialize(ubyte[] manip) {
+		return PrimitiveBlock(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -403,7 +412,7 @@ struct PrimitiveBlock {
 						   to!(string)(wireType) ~
 						   " for variable type StringTable");
 
-					stringtable = StringTable.Deserialize(input,false);
+					stringtable = StringTable(input,false);
 				} else static if (is(StringTable == enum)) {
 					if (wireType == WireType.varint) {
 						stringtable = cast(StringTable)
@@ -425,7 +434,7 @@ struct PrimitiveBlock {
 						   " for variable type PrimitiveGroup");
 
 					if(primitivegroup.isNull) primitivegroup = new PrimitiveGroup[](0);
-					primitivegroup ~= PrimitiveGroup.Deserialize(input,false);
+					primitivegroup ~= PrimitiveGroup(input,false);
 				} else static if (is(PrimitiveGroup == enum)) {
 					if (wireType == WireType.varint) {
 						if(primitivegroup.isNull) primitivegroup = new PrimitiveGroup[](0);
@@ -477,11 +486,11 @@ struct PrimitiveBlock {
 				date_granularity = fromVarint!(int)(input);
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 		if (stringtable.isNull) throw new Exception("Did not find a stringtable in the message parse.");
@@ -496,9 +505,6 @@ struct PrimitiveBlock {
 		if (!merger.date_granularity.isNull) date_granularity = merger.date_granularity;
 	}
 
-	static PrimitiveBlock opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
@@ -518,7 +524,7 @@ struct PrimitiveGroup {
 	///
 	Nullable!(ChangeSet[]) changesets;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name nodes
 		if(!nodes.isNull)
@@ -577,7 +583,12 @@ struct PrimitiveGroup {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static PrimitiveGroup Deserialize(ref ubyte[] manip, bool isroot=true) {return PrimitiveGroup(manip,isroot);}
+	static PrimitiveGroup Deserialize(ubyte[] manip) {
+		return PrimitiveGroup(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -598,7 +609,7 @@ struct PrimitiveGroup {
 						   " for variable type Node");
 
 					if(nodes.isNull) nodes = new Node[](0);
-					nodes ~= Node.Deserialize(input,false);
+					nodes ~= Node(input,false);
 				} else static if (is(Node == enum)) {
 					if (wireType == WireType.varint) {
 						if(nodes.isNull) nodes = new Node[](0);
@@ -624,7 +635,7 @@ struct PrimitiveGroup {
 						   to!(string)(wireType) ~
 						   " for variable type DenseNodes");
 
-					dense = DenseNodes.Deserialize(input,false);
+					dense = DenseNodes(input,false);
 				} else static if (is(DenseNodes == enum)) {
 					if (wireType == WireType.varint) {
 						dense = cast(DenseNodes)
@@ -646,7 +657,7 @@ struct PrimitiveGroup {
 						   " for variable type Way");
 
 					if(ways.isNull) ways = new Way[](0);
-					ways ~= Way.Deserialize(input,false);
+					ways ~= Way(input,false);
 				} else static if (is(Way == enum)) {
 					if (wireType == WireType.varint) {
 						if(ways.isNull) ways = new Way[](0);
@@ -673,7 +684,7 @@ struct PrimitiveGroup {
 						   " for variable type Relation");
 
 					if(relations.isNull) relations = new Relation[](0);
-					relations ~= Relation.Deserialize(input,false);
+					relations ~= Relation(input,false);
 				} else static if (is(Relation == enum)) {
 					if (wireType == WireType.varint) {
 						if(relations.isNull) relations = new Relation[](0);
@@ -700,7 +711,7 @@ struct PrimitiveGroup {
 						   " for variable type ChangeSet");
 
 					if(changesets.isNull) changesets = new ChangeSet[](0);
-					changesets ~= ChangeSet.Deserialize(input,false);
+					changesets ~= ChangeSet(input,false);
 				} else static if (is(ChangeSet == enum)) {
 					if (wireType == WireType.varint) {
 						if(changesets.isNull) changesets = new ChangeSet[](0);
@@ -720,11 +731,11 @@ struct PrimitiveGroup {
 					  "Can't identify type `ChangeSet`");
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 	}
@@ -737,9 +748,6 @@ struct PrimitiveGroup {
 		if (!merger.changesets.isNull) changesets ~= merger.changesets;
 	}
 
-	static PrimitiveGroup opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }
 /// String table, contains the common strings in each block.
 
@@ -751,7 +759,7 @@ struct StringTable {
 	///
 	Nullable!(ubyte[][]) s;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name s
 		if(!s.isNull)
@@ -768,7 +776,12 @@ struct StringTable {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static StringTable Deserialize(ref ubyte[] manip, bool isroot=true) {return StringTable(manip,isroot);}
+	static StringTable Deserialize(ubyte[] manip) {
+		return StringTable(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -792,11 +805,11 @@ struct StringTable {
 				   fromByteString!(ubyte[])(input);
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 	}
@@ -805,9 +818,6 @@ struct StringTable {
 		if (!merger.s.isNull) s ~= merger.s;
 	}
 
-	static StringTable opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }
 /// Optional metadata that may be included into each primitive.
 struct Info {
@@ -835,7 +845,7 @@ struct Info {
 	/// set.
 	Nullable!(bool) visible;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name version
 		if (!version_.isNull) ret ~= toVarint(version_.get(),1);
@@ -859,7 +869,12 @@ struct Info {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static Info Deserialize(ref ubyte[] manip, bool isroot=true) {return Info(manip,isroot);}
+	static Info Deserialize(ubyte[] manip) {
+		return Info(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -921,11 +936,11 @@ struct Info {
 				visible = fromVarint!(bool)(input);
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 	}
@@ -939,9 +954,6 @@ struct Info {
 		if (!merger.visible.isNull) visible = merger.visible;
 	}
 
-	static Info opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }
 /// Optional metadata that may be included into each primitive. Special dense format used in DenseNodes.
 struct DenseInfo {
@@ -969,7 +981,7 @@ struct DenseInfo {
 	/// set.
 	Nullable!(bool[]) visible;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name version
 		if(!version_.isNull)
@@ -999,7 +1011,12 @@ struct DenseInfo {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static DenseInfo Deserialize(ref ubyte[] manip, bool isroot=true) {return DenseInfo(manip,isroot);}
+	static DenseInfo Deserialize(ubyte[] manip) {
+		return DenseInfo(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -1115,11 +1132,11 @@ struct DenseInfo {
 				}
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 	}
@@ -1133,9 +1150,6 @@ struct DenseInfo {
 		if (!merger.visible.isNull) visible ~= merger.visible;
 	}
 
-	static DenseInfo opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }
 /// THIS IS STUB DESIGN FOR CHANGESETS. NOT USED RIGHT NOW.
 /// TODO:    REMOVE THIS?
@@ -1145,7 +1159,7 @@ struct ChangeSet {
 	///
 	Nullable!(long) id;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name id
 		ret ~= toVarint(id.get(),1);
@@ -1159,7 +1173,12 @@ struct ChangeSet {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static ChangeSet Deserialize(ref ubyte[] manip, bool isroot=true) {return ChangeSet(manip,isroot);}
+	static ChangeSet Deserialize(ubyte[] manip) {
+		return ChangeSet(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -1181,11 +1200,11 @@ struct ChangeSet {
 				id = fromVarint!(long)(input);
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 		if (id.isNull) throw new Exception("Did not find a id in the message parse.");
@@ -1195,9 +1214,6 @@ struct ChangeSet {
 		if (!merger.id.isNull) id = merger.id;
 	}
 
-	static ChangeSet opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }
 struct Node {
 	// deal with unknown fields
@@ -1215,7 +1231,7 @@ struct Node {
 	///
 	Nullable!(long) lon;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name id
 		ret ~= toSInt(id.get(),1);
@@ -1246,7 +1262,12 @@ struct Node {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static Node Deserialize(ref ubyte[] manip, bool isroot=true) {return Node(manip,isroot);}
+	static Node Deserialize(ubyte[] manip) {
+		return Node(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -1308,7 +1329,7 @@ struct Node {
 						   to!(string)(wireType) ~
 						   " for variable type Info");
 
-					info = Info.Deserialize(input,false);
+					info = Info(input,false);
 				} else static if (is(Info == enum)) {
 					if (wireType == WireType.varint) {
 						info = cast(Info)
@@ -1339,11 +1360,11 @@ struct Node {
 				lon = fromSInt!(long)(input);
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 		if (id.isNull) throw new Exception("Did not find a id in the message parse.");
@@ -1360,9 +1381,6 @@ struct Node {
 		if (!merger.lon.isNull) lon = merger.lon;
 	}
 
-	static Node opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }
 /// Used to densly represent a sequence of nodes that do not have any tags.
 
@@ -1392,7 +1410,7 @@ struct DenseNodes {
 	/// Special packing of keys and vals into one array. May be empty if all nodes in this block are tagless.
 	Nullable!(int[]) keys_vals;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name id
 		if(!id.isNull)
@@ -1423,7 +1441,12 @@ struct DenseNodes {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static DenseNodes Deserialize(ref ubyte[] manip, bool isroot=true) {return DenseNodes(manip,isroot);}
+	static DenseNodes Deserialize(ubyte[] manip) {
+		return DenseNodes(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -1460,7 +1483,7 @@ struct DenseNodes {
 						   to!(string)(wireType) ~
 						   " for variable type DenseInfo");
 
-					denseinfo = DenseInfo.Deserialize(input,false);
+					denseinfo = DenseInfo(input,false);
 				} else static if (is(DenseInfo == enum)) {
 					if (wireType == WireType.varint) {
 						denseinfo = cast(DenseInfo)
@@ -1526,11 +1549,11 @@ struct DenseNodes {
 				}
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 	}
@@ -1543,9 +1566,6 @@ struct DenseNodes {
 		if (!merger.keys_vals.isNull) keys_vals ~= merger.keys_vals;
 	}
 
-	static DenseNodes opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }
 struct Way {
 	// deal with unknown fields
@@ -1561,7 +1581,7 @@ struct Way {
 	///
 	Nullable!(long[]) refs;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name id
 		ret ~= toVarint(id.get(),1);
@@ -1591,7 +1611,12 @@ struct Way {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static Way Deserialize(ref ubyte[] manip, bool isroot=true) {return Way(manip,isroot);}
+	static Way Deserialize(ubyte[] manip) {
+		return Way(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -1653,7 +1678,7 @@ struct Way {
 						   to!(string)(wireType) ~
 						   " for variable type Info");
 
-					info = Info.Deserialize(input,false);
+					info = Info(input,false);
 				} else static if (is(Info == enum)) {
 					if (wireType == WireType.varint) {
 						info = cast(Info)
@@ -1685,11 +1710,11 @@ struct Way {
 				}
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 		if (id.isNull) throw new Exception("Did not find a id in the message parse.");
@@ -1703,9 +1728,6 @@ struct Way {
 		if (!merger.refs.isNull) refs ~= merger.refs;
 	}
 
-	static Way opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }
 struct Relation {
 	// deal with unknown fields
@@ -1732,7 +1754,7 @@ struct Relation {
 	/// DELTA encoded
 	Nullable!(MemberType[]) types;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name id
 		ret ~= toVarint(id.get(),1);
@@ -1775,7 +1797,12 @@ struct Relation {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static Relation Deserialize(ref ubyte[] manip, bool isroot=true) {return Relation(manip,isroot);}
+	static Relation Deserialize(ubyte[] manip) {
+		return Relation(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -1837,7 +1864,7 @@ struct Relation {
 						   to!(string)(wireType) ~
 						   " for variable type Info");
 
-					info = Info.Deserialize(input,false);
+					info = Info(input,false);
 				} else static if (is(Info == enum)) {
 					if (wireType == WireType.varint) {
 						info = cast(Info)
@@ -1893,7 +1920,7 @@ struct Relation {
 						   " for variable type MemberType");
 
 					if(types.isNull) types = new MemberType[](0);
-					types ~= MemberType.Deserialize(input,false);
+					types ~= MemberType(input,false);
 				} else static if (is(MemberType == enum)) {
 					if (wireType == WireType.varint) {
 						if(types.isNull) types = new MemberType[](0);
@@ -1913,11 +1940,11 @@ struct Relation {
 					  "Can't identify type `MemberType`");
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 		if (id.isNull) throw new Exception("Did not find a id in the message parse.");
@@ -1933,7 +1960,4 @@ struct Relation {
 		if (!merger.types.isNull) types ~= merger.types;
 	}
 
-	static Relation opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }

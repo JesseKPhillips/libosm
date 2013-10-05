@@ -30,7 +30,7 @@ struct Blob {
 	}
 	private Nullable!(ubyte[])	 OBSOLETE_bzip2_data_dep;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name raw
 		if (!raw.isNull) ret ~= toByteString(raw.get(),1);
@@ -52,7 +52,12 @@ struct Blob {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static Blob Deserialize(ref ubyte[] manip, bool isroot=true) {return Blob(manip,isroot);}
+	static Blob Deserialize(ubyte[] manip) {
+		return Blob(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -110,11 +115,11 @@ struct Blob {
 				   fromByteString!(ubyte[])(input);
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 	}
@@ -127,9 +132,6 @@ struct Blob {
 		if (!merger.OBSOLETE_bzip2_data_dep.isNull) OBSOLETE_bzip2_data_dep = merger.OBSOLETE_bzip2_data_dep;
 	}
 
-	static Blob opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }
 /// A file contains an sequence of fileblock headers, each prefixed by
 /// their length in network byte order, followed by a data block
@@ -144,7 +146,7 @@ struct BlobHeader {
 	///
 	Nullable!(int) datasize;
 
-	ubyte[] Serialize(int field = -1) {
+	ubyte[] Serialize(int field = -1) const {
 		ubyte[] ret;
 		// Serialize member 1 Field Name type
 		ret ~= toByteString(type.get(),1);
@@ -162,7 +164,12 @@ struct BlobHeader {
 
 	// if we're root, we can assume we own the whole string
 	// if not, the first thing we need to do is pull the length that belongs to us
-	static BlobHeader Deserialize(ref ubyte[] manip, bool isroot=true) {return BlobHeader(manip,isroot);}
+	static BlobHeader Deserialize(ubyte[] manip) {
+		return BlobHeader(manip,true);
+	}
+	this(ubyte[] manip,bool isroot=true) {
+		this(manip,isroot);
+	}
 	this(ref ubyte[] manip,bool isroot=true) {
 		ubyte[] input = manip;
 		// cut apart the input string
@@ -202,11 +209,11 @@ struct BlobHeader {
 				datasize = fromVarint!(int)(input);
 			break;
 			default:
-				// rip off unknown fields
-			if(input.length)
-				ufields ~= toVarint(header)~
-				   ripUField(input,getWireType(header));
-			break;
+					// rip off unknown fields
+				if(input.length)
+					ufields ~= toVarint(header)~
+					   ripUField(input,getWireType(header));
+				break;
 			}
 		}
 		if (type.isNull) throw new Exception("Did not find a type in the message parse.");
@@ -219,7 +226,4 @@ struct BlobHeader {
 		if (!merger.datasize.isNull) datasize = merger.datasize;
 	}
 
-	static BlobHeader opCall(ref ubyte[]input) {
-		return Deserialize(input);
-	}
 }
