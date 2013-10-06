@@ -26,6 +26,7 @@
  * License: Boost 1.0
  */
 import std.algorithm;
+import std.conv;
 import std.exception;
 import std.file;
 import std.range;
@@ -40,7 +41,8 @@ import osmpbf;
 import osmpbffile;
 
 // Converts ubyte num to proper endian
-int toNative(ubyte[] num) {
+// Used on initial 4 bytes before a HeaderBlock
+private int toNative(ubyte[] num) {
     import std.system;
     union Hold {
         ubyte[4] arr;
@@ -48,15 +50,213 @@ int toNative(ubyte[] num) {
     }
     Hold a;
     a.arr = num;
-    if(endian == Endian.littleEndian)
+    version(LittleEndian)
         a.arr[0..4].reverse();
     return a.number;
+}
+
+enum supportedFeaturs = ["DenseNodes", "OsmSchema-V0.6"];
+
+// Type stored in BlobData
+enum BlobType { osmHeader, osmData }
+
+/*
+ * This stores the raw file data.
+ *
+ * Cast this type to a HeaderBlock or PrimitaveBlock.
+ * Check the type to identify what is stored.
+ * If the type is PrimitiveBlock decompression will be handled automatically
+ * and upon casting.
+ */
+private struct BlobData {
+    string type_;
+    ubyte[] data;
+    bool compressed;
+    ubyte[] index;
+
+    // Returns the decompressed PB encoded data
+    private ubyte[] rawData() {
+        if(compressed)
+            return cast(ubyte[]) uncompress(data);
+        else
+            return data;
+    }
+
+    /// contains the type of data in this block message.
+    BlobType type() {
+        switch(type_) {
+            case "OSMHeader":
+                return BlobType.osmHeader;
+            case "OSMData":
+                return BlobType.osmData;
+            default:
+                throw new Exception("Blob Unknown Type: " ~ type_);
+        }
+    }
+
+    /*
+     * Converts the type to HeaderBlock
+     */
+    T opCast(T)() if(is(T == HeaderBlock)) {
+        assert(type == BlobType.osmHeader);
+        return HeaderBlock(rawData);
+    }
+
+    /*
+     * Converts the type to PrimitiveBlock
+     */
+    T opCast(T)() if(is(T == PrimitiveBlock)) {
+        assert(type == BlobType.osmData);
+        return PrimitiveBlock(rawData);
+    }
+}
+
+unittest {
+    auto rawData = cast(ubyte[]) "This is uncompressed";
+    auto bdata = BlobData("OSMHeader", rawData, false);
+    assert(bdata.rawData == rawData);
+
+    auto compData = cast(ubyte[]) compress("This is uncompressed");
+    bdata = BlobData("OSMData", compData, true);
+    assert(bdata.rawData == rawData);
+}
+
+auto osmBlob(string file) {
+    auto ans = OpenStreetMapBlob(FileRange(file));
+    ans.prime();
+    return ans;
+}
+
+struct OpenStreetMapBlob {
+    FileRange datastream;
+    private BlobData bdata;
+    private bool _empty;
+
+    auto empty() {
+        return _empty;
+    }
+
+    auto front() {
+        assert(!empty, "Can't front empty range.");
+        return bdata;
+    }
+
+    auto popFront() {
+        assert(!empty, "Can't popFront of empty range.");
+        if(datastream.empty)
+            _empty = true;
+        else
+            prime();
+    }
+    auto prime() {
+        // Each header starts with 4 bytes
+        enforce(datastream.length > 3,
+            "Cannot obtain header length from remaning byte count: "
+            ~ to!string(datastream.length));
+
+        // The format is a repeating sequence of:
+        // * int4: length of the BlobHeader message in network byte order
+        auto size = toNative(datastream[0..4]);
+        datastream.popFrontN(4);
+
+        // serialized BlobHeader message
+        auto osmData = datastream[0..size];
+        datastream.popFrontN(size);
+        auto header = BlobHeader(osmData);
+
+        // * serialized Blob message (size is given in the header)
+        // Blob is currently used to store an arbitrary blob of data, either
+        // uncompressed or in zlib/deflate compressed format.
+        osmData = datastream[0..header.datasize];
+        datastream.popFrontN(header.datasize);
+        auto blob = Blob(osmData);
+        // index may include metadata about the following blob
+        auto index = header.indexdata.isNull ? [] : header.indexdata;
+
+        // Obtain Blob data: See osmformat.proto
+        if(!blob.zlib_data.isNull)
+            bdata = BlobData(header.type, blob.zlib_data, true, index);
+        else if(!blob.raw.isNull)
+            bdata = BlobData(header.type, blob.raw, false, index);
+        else
+            throw new Exception("Unsupported compression.");
+    }
+
+    auto save() {
+        return this;
+    }
+}
+
+struct OpenStreetMapHeader {
+    HeaderBlock headerBlock;
+    ubyte[] index;
+    OpenStreetMapDataRange data;
+}
+
+auto openStreetMapRange(string file) {
+    // Need to figure out how to link header to data ranges
+    auto fileHeadings = osmBlob(file);
+    OpenStreetMapRange h;
+    h.fileHeadings = fileHeadings;
+    h.popFront();
+    return h;
+}
+
+struct OpenStreetMapRange {
+    OpenStreetMapBlob fileHeadings;
+    OpenStreetMapHeader header;
+
+    auto empty() {
+        return fileHeadings.empty;
+    }
+
+    auto front() {
+        return header;
+    }
+
+    auto popFront() {
+        for(;!fileHeadings.empty; fileHeadings.popFront())
+            if(fileHeadings.front.type == BlobType.osmHeader)
+                break;
+        if(!fileHeadings.empty) {
+            header.headerBlock = to!HeaderBlock(fileHeadings.front);
+            header.index = fileHeadings.bdata.index;
+            fileHeadings.popFront();
+            header.data.fileHeadings = fileHeadings;
+        }
+    }
+
+    auto save() {
+        return this;
+    }
+}
+
+struct OpenStreetMapDataRange {
+    OpenStreetMapBlob fileHeadings;
+
+    auto empty() {
+        if(fileHeadings.empty || fileHeadings.front.type == BlobType.osmHeader)
+            return true;
+        return false;
+    }
+
+    auto front() {
+        return to!PrimitiveBlock(fileHeadings.front);
+    }
+
+    auto popFront() {
+        fileHeadings.popFront();
+    }
+
+    auto save() {
+        return this;
+    }
 }
 
 void main(string[] args) {
     enforce(args.length == 2, "Usage: " ~ args[0] ~ " [file]");
     // A file contains a header followed by a sequence of fileblocks.
-    auto datastream = FileRange(args[1]);
+    auto osmRange = openStreetMapRange(args[1]);
 
     size_t headerCount, dataCount, bytesCount;
 
@@ -66,50 +266,7 @@ void main(string[] args) {
         writeln("Bytes: ", bytesCount);
     }
 
-    while(!datastream.empty) {
-        if(datastream.bufferLength < 4) {
-            // This shows bytes which haven't been read.
-            assert(false, "Should parse all bytes?");
-        }
-
-        // The format is a repeating sequence of:
-        // * int4: length of the BlobHeader message in network byte order
-        auto size = toNative(datastream[0..4]);
-        datastream.popFrontN(4);
-        bytesCount += 4;
-
-        // serialized BlobHeader message
-        auto osmData = datastream[0..size];
-        datastream.popFrontN(size);
-        bytesCount += size;
-        auto header = BlobHeader(osmData);
-        // contains the type of data in this block message.
-        writeln("Blob Type: ", header.type);
-        // index may include metadata about the following blob
-        writeln("Has Index Data: ", !header.indexdata.isNull);
-        // contains the serialized size of the subsequent Blob message
-        writeln("Blob Size: ", header.datasize);
-        writeln();
-
-        // * serialized Blob message (size is given in the header)
-        // Blob is currently used to store an arbitrary blob of data, either
-        // uncompressed or in zlib/deflate compressed format.
-        osmData = datastream[0..header.datasize];
-        datastream.popFrontN(header.datasize);
-        bytesCount += header.datasize;
-        auto blob = Blob(osmData);
-        // No compression
-        writeln("Has raw data: ", !blob.raw.isNull);
-        // Only set when compressed, to the uncompressed size
-        writeln("Blob raw_size: ", blob.raw_size);
-        writeln("Has zlib: ", !blob.zlib_data.isNull);
-        writeln();
-
-        // Obtain Blob data: See osmformat.proto
-        if(!blob.zlib_data.isNull)
-            osmData = cast(ubyte[]) uncompress(blob.zlib_data);
-        else if(!blob.raw.isNull)
-            osmData = blob.raw;
+    foreach(header; osmRange) {
         // In order to robustly detect illegal or corrupt files, the maximum
         // size of BlobHeader and Blob messages is limited. The length of the
         // BlobHeader *should* be less than 32 KiB (32*1024 bytes) and *must*
@@ -123,22 +280,20 @@ void main(string[] args) {
         // The design lets other software extend the format to include
         // fileblocks of additional types for their own purposes. Parsers
         // should ignore and skip fileblock types that they do not recognize.
-        if(header.type == "OSMHeader") {
-            headerCount++;
-            // Contains a serialized HeaderBlock message (See osmformat.proto).
-            // Every file must have one of these blocks before the first
-            // 'OSMData' block.
-            auto osmHeader = HeaderBlock(osmData);
-            writeln("OSM bbox ", osmHeader.bbox);
-            writeln("OSM author ", osmHeader.writingprogram);
-            writeln("OSM required ", osmHeader.required_features);
-            if(!osmHeader.source.isNull)
-                writeln("OSM source ", osmHeader.source);
-        } else if(header.type == "OSMData") {
+        headerCount++;
+        // Contains a serialized HeaderBlock message (See osmformat.proto).
+        // Every file must have one of these blocks before the first
+        // 'OSMData' block.
+        auto osmHeader = header.headerBlock;
+        writeln("OSM bbox ", osmHeader.bbox);
+        writeln("OSM author ", osmHeader.writingprogram);
+        writeln("OSM required ", osmHeader.required_features);
+        if(!osmHeader.source.isNull)
+            writeln("OSM source ", osmHeader.source);
+        foreach(osmDataBlock; header.data) {
             dataCount++;
             // Contains a serialized PrimitiveBlock message. (See
             // osmformat.proto). These contain the entities.
-            auto osmDataBlock = PrimitiveBlock(osmData);
             writeln("OSM lat_off ", osmDataBlock.lat_offset);
             writeln("OSM lon_off ", osmDataBlock.lon_offset);
             writeln("OSM date ", !osmDataBlock.date_granularity.isNull);

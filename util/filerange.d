@@ -25,7 +25,7 @@ public:
 		return file[index];
 	}
 
-    auto bufferLength() {
+    auto length() {
         return file.length - index;
     }
 
