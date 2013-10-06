@@ -58,7 +58,7 @@ private int toNative(ubyte[] num) {
 enum supportedFeaturs = ["DenseNodes", "OsmSchema-V0.6"];
 
 // Type stored in BlobData
-enum BlobType { osmHeader, osmData }
+enum BlobType { unknown = -1, osmData, osmHeader }
 
 /*
  * This stores the raw file data.
@@ -75,7 +75,7 @@ private struct BlobData {
     ubyte[] index;
 
     // Returns the decompressed PB encoded data
-    private ubyte[] rawData() {
+    ubyte[] rawData() {
         if(compressed)
             return cast(ubyte[]) uncompress(data);
         else
@@ -90,7 +90,7 @@ private struct BlobData {
             case "OSMData":
                 return BlobType.osmData;
             default:
-                throw new Exception("Blob Unknown Type: " ~ type_);
+                return BlobType.unknown;
         }
     }
 
@@ -246,6 +246,9 @@ struct OpenStreetMapDataRange {
 
     auto popFront() {
         fileHeadings.popFront();
+        for(;!fileHeadings.empty; fileHeadings.popFront())
+            if(fileHeadings.front.type == BlobType.osmData)
+                break;
     }
 
     auto save() {
