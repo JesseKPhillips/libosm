@@ -1,3 +1,19 @@
+/** Copyright (c) 2010 Scott A. Crosby. <scott@sacrosby.com>
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Lesser General Public License as 
+   published by the Free Software Foundation, either version 3 of the 
+   License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+*/
 module osmpbf;
 import ProtocolBuffer.conversion.pbbinary;
 import std.conv;
@@ -6,56 +22,55 @@ import std.typecons;
 string makeString(T)(T v) {
 	return to!string(v);
 }
-///  OSM Binary file format
+/* OSM Binary file format 
 
-/// This is the master schema file of the OSM binary file format. This
-/// file is designed to support limited random-access and future
-/// extendability.
-///
-/// A binary OSM file consists of a sequence of FileBlocks (please see
-/// fileformat.proto). The first fileblock contains a serialized instance
-/// of HeaderBlock, followed by a sequence of PrimitiveBlock blocks that
-/// contain the primitives.
-///
-/// Each primitiveblock is designed to be independently parsable. It
-/// contains a string table storing all strings in that block (keys and
-/// values in tags, roles in relations, usernames, etc.) as well as
-/// metadata containing the precision of coordinates or timestamps in that
-/// block.
-///
-/// A primitiveblock contains a sequence of primitive groups, each
-/// containing primitives of the same type (nodes, densenodes, ways,
-/// relations). Coordinates are stored in signed 64-bit integers. Lat&lon
-/// are measured in units <granularity> nanodegrees. The default of
-/// granularity of 100 nanodegrees corresponds to about 1cm on the ground,
-/// and a full lat or lon fits into 32 bits.
-///
-/// Converting an integer to a lattitude or longitude uses the formula:
-/// $OUT = IN * granularity / 10**9$. Many encoding schemes use delta
-/// coding when representing nodes and relations.
+This is the master schema file of the OSM binary file format. This
+file is designed to support limited random-access and future
+extendability.
+
+A binary OSM file consists of a sequence of FileBlocks (please see
+fileformat.proto). The first fileblock contains a serialized instance
+of HeaderBlock, followed by a sequence of PrimitiveBlock blocks that
+contain the primitives.
+
+Each primitiveblock is designed to be independently parsable. It
+contains a string table storing all strings in that block (keys and
+values in tags, roles in relations, usernames, etc.) as well as
+metadata containing the precision of coordinates or timestamps in that
+block.
+
+A primitiveblock contains a sequence of primitive groups, each
+containing primitives of the same type (nodes, densenodes, ways,
+relations). Coordinates are stored in signed 64-bit integers. Lat&lon
+are measured in units <granularity> nanodegrees. The default of
+granularity of 100 nanodegrees corresponds to about 1cm on the ground,
+and a full lat or lon fits into 32 bits.
+
+Converting an integer to a lattitude or longitude uses the formula:
+$OUT = IN * granularity / 10**9$. Many encoding schemes use delta
+coding when representing nodes and relations.
+
+*/
 
 ///////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
-
-/// Contains the file header.
+/* Contains the file header. */
 struct HeaderBlock {
 	// deal with unknown fields
 	ubyte[] ufields;
 	///
 	Nullable!(HeaderBBox) bbox;
-	/// Additional tags to aid in parsing this dataset
+	/* Additional tags to aid in parsing this dataset */
 	Nullable!(string[]) required_features;
 	///
 	Nullable!(string[]) optional_features;
 	///
 	Nullable!(string) writingprogram;
-	///
-	Nullable!(string) source;
 	/// From the bbox field.
-
-	/// Tags that allow continuing an Osmosis replication
-
-	/// replication timestamp, expressed in seconds since the epoch,
+	Nullable!(string) source;
+	/* Tags that allow continuing an Osmosis replication */
+	
+	/// replication timestamp, expressed in seconds since the epoch, 
 	/// otherwise the same value as in the "timestamp=..." field
 	/// in the state.txt file used by Osmosis
 	Nullable!(long) osmosis_replication_timestamp;
@@ -68,7 +83,7 @@ struct HeaderBlock {
 		ubyte[] ret;
 		// Serialize member 1 Field Name bbox
 		static if (is(HeaderBBox == struct)) {
-			ret ~= bbox.Serialize(1);
+			if (!bbox.isNull) ret ~= bbox.Serialize(1);
 		} else static if (is(HeaderBBox == enum)) {
 			if (!bbox.isNull) ret ~= toVarint(cast(int)bbox.get(),1);
 		} else
@@ -227,9 +242,9 @@ struct HeaderBlock {
 	}
 
 }
-/// The bounding box field in the OSM header. BBOX, as used in the OSM
-/// header. Units are always in nanodegrees -- they do not obey
-/// granularity rules.
+/** The bounding box field in the OSM header. BBOX, as used in the OSM
+header. Units are always in nanodegrees -- they do not obey
+granularity rules. */
 struct HeaderBBox {
 	// deal with unknown fields
 	ubyte[] ufields;
@@ -334,6 +349,7 @@ struct HeaderBBox {
 	}
 
 }
+///
 struct PrimitiveBlock {
 	// deal with unknown fields
 	ubyte[] ufields;
@@ -538,7 +554,7 @@ struct PrimitiveGroup {
 		}
 		// Serialize member 2 Field Name dense
 		static if (is(DenseNodes == struct)) {
-			ret ~= dense.Serialize(2);
+			if (!dense.isNull) ret ~= dense.Serialize(2);
 		} else static if (is(DenseNodes == enum)) {
 			if (!dense.isNull) ret ~= toVarint(cast(int)dense.get(),2);
 		} else
@@ -749,10 +765,12 @@ struct PrimitiveGroup {
 	}
 
 }
-/// String table, contains the common strings in each block.
+/** String table, contains the common strings in each block.
 
-/// Note that we reserve index '0' as a delimiter, so the entry at that
-/// index in the table is ALWAYS blank and unused.
+ Note that we reserve index '0' as a delimiter, so the entry at that
+ index in the table is ALWAYS blank and unused.
+
+ */
 struct StringTable {
 	// deal with unknown fields
 	ubyte[] ufields;
@@ -819,7 +837,7 @@ struct StringTable {
 	}
 
 }
-/// Optional metadata that may be included into each primitive.
+/* Optional metadata that may be included into each primitive. */
 struct Info {
 	// deal with unknown fields
 	ubyte[] ufields;
@@ -831,10 +849,8 @@ struct Info {
 	Nullable!(long) changeset;
 	///
 	Nullable!(int) uid;
-	///
-	Nullable!(uint) user_sid;
 	/// String IDs
-
+	Nullable!(uint) user_sid;
 	/// The visible flag is used to store history information. It indicates that
 	/// the current object version has been created by a delete operation on the
 	/// OSM API.
@@ -955,22 +971,20 @@ struct Info {
 	}
 
 }
-/// Optional metadata that may be included into each primitive. Special dense format used in DenseNodes.
+/** Optional metadata that may be included into each primitive. Special dense format used in DenseNodes. */
 struct DenseInfo {
 	// deal with unknown fields
 	ubyte[] ufields;
 	///
 	Nullable!(int[]) version_;
-	///
+	/// DELTA coded
 	Nullable!(long[]) timestamp;
 	/// DELTA coded
 	Nullable!(long[]) changeset;
 	/// DELTA coded
 	Nullable!(int[]) uid;
-	/// DELTA coded
-	Nullable!(int[]) user_sid;
 	/// String IDs for usernames. DELTA coded
-
+	Nullable!(int[]) user_sid;
 	/// The visible flag is used to store history information. It indicates that
 	/// the current object version has been created by a delete operation on the
 	/// OSM API.
@@ -1215,18 +1229,19 @@ struct ChangeSet {
 	}
 
 }
+///
 struct Node {
 	// deal with unknown fields
 	ubyte[] ufields;
 	///
 	Nullable!(long) id;
-	/// Parallel arrays.
+	/// String IDs.
 	Nullable!(uint[]) keys;
 	/// String IDs.
 	Nullable!(uint[]) vals;
-	/// String IDs.
-	Nullable!(Info) info;
 	/// May be omitted in omitmeta
+	Nullable!(Info) info;
+	///
 	Nullable!(long) lat;
 	///
 	Nullable!(long) lon;
@@ -1243,7 +1258,7 @@ struct Node {
 			ret ~= toPacked!(uint[],toVarint)(vals,3);
 		// Serialize member 4 Field Name info
 		static if (is(Info == struct)) {
-			ret ~= info.Serialize(4);
+			if (!info.isNull) ret ~= info.Serialize(4);
 		} else static if (is(Info == enum)) {
 			if (!info.isNull) ret ~= toVarint(cast(int)info.get(),4);
 		} else
@@ -1382,31 +1397,28 @@ struct Node {
 	}
 
 }
-/// Used to densly represent a sequence of nodes that do not have any tags.
+/* Used to densly represent a sequence of nodes that do not have any tags.
 
-/// We represent these nodes columnwise as five columns: ID's, lats, and
-/// lons, all delta coded. When metadata is not omitted,
-///
-/// We encode keys & vals for all nodes as a single array of integers
-/// containing key-stringid and val-stringid, using a stringid of 0 as a
-/// delimiter between nodes.
-///
-///    ( (<keyid> <valid>)* '0' )*
+We represent these nodes columnwise as five columns: ID's, lats, and
+lons, all delta coded. When metadata is not omitted, 
+
+We encode keys & vals for all nodes as a single array of integers
+containing key-stringid and val-stringid, using a stringid of 0 as a
+delimiter between nodes.
+
+   ( (<keyid> <valid>)* '0' )*
+ */
 struct DenseNodes {
 	// deal with unknown fields
 	ubyte[] ufields;
-	///
-	Nullable!(long[]) id;
 	/// DELTA coded
-
+	Nullable!(long[]) id;
 	///repeated Info info = 4;
 	Nullable!(DenseInfo) denseinfo;
-	///
+	/// DELTA coded
 	Nullable!(long[]) lat;
 	/// DELTA coded
 	Nullable!(long[]) lon;
-	/// DELTA coded
-
 	/// Special packing of keys and vals into one array. May be empty if all nodes in this block are tagless.
 	Nullable!(int[]) keys_vals;
 
@@ -1417,7 +1429,7 @@ struct DenseNodes {
 			ret ~= toPacked!(long[],toSInt)(id,1);
 		// Serialize member 5 Field Name denseinfo
 		static if (is(DenseInfo == struct)) {
-			ret ~= denseinfo.Serialize(5);
+			if (!denseinfo.isNull) ret ~= denseinfo.Serialize(5);
 		} else static if (is(DenseInfo == enum)) {
 			if (!denseinfo.isNull) ret ~= toVarint(cast(int)denseinfo.get(),5);
 		} else
@@ -1567,6 +1579,7 @@ struct DenseNodes {
 	}
 
 }
+///
 struct Way {
 	// deal with unknown fields
 	ubyte[] ufields;
@@ -1578,7 +1591,7 @@ struct Way {
 	Nullable!(uint[]) vals;
 	///
 	Nullable!(Info) info;
-	///
+	/// DELTA coded
 	Nullable!(long[]) refs;
 
 	ubyte[] Serialize(int field = -1) const {
@@ -1593,7 +1606,7 @@ struct Way {
 			ret ~= toPacked!(uint[],toVarint)(vals,3);
 		// Serialize member 4 Field Name info
 		static if (is(Info == struct)) {
-			ret ~= info.Serialize(4);
+			if (!info.isNull) ret ~= info.Serialize(4);
 		} else static if (is(Info == enum)) {
 			if (!info.isNull) ret ~= toVarint(cast(int)info.get(),4);
 		} else
@@ -1729,12 +1742,17 @@ struct Way {
 	}
 
 }
+///
 struct Relation {
 	// deal with unknown fields
 	ubyte[] ufields;
+	///
 	enum MemberType {
+		///
 		NODE = 0,
+		///
 		WAY = 1,
+		///
 		RELATION = 2,
 	}
 
@@ -1749,9 +1767,9 @@ struct Relation {
 	Nullable!(Info) info;
 	/// Parallel arrays
 	Nullable!(int[]) roles_sid;
-	///
-	Nullable!(long[]) memids;
 	/// DELTA encoded
+	Nullable!(long[]) memids;
+	///
 	Nullable!(MemberType[]) types;
 
 	ubyte[] Serialize(int field = -1) const {
@@ -1766,7 +1784,7 @@ struct Relation {
 			ret ~= toPacked!(uint[],toVarint)(vals,3);
 		// Serialize member 4 Field Name info
 		static if (is(Info == struct)) {
-			ret ~= info.Serialize(4);
+			if (!info.isNull) ret ~= info.Serialize(4);
 		} else static if (is(Info == enum)) {
 			if (!info.isNull) ret ~= toVarint(cast(int)info.get(),4);
 		} else
@@ -1780,7 +1798,7 @@ struct Relation {
 		// Serialize member 10 Field Name types
 		static if (is(MemberType == struct)) {
 			foreach(iter;types			) {
-				ret ~= iter.Serialize(10);
+ret ~= iter.Serialize(10);
 			}
 		} else static if (is(MemberType == enum)) {
 			if(!types.isNull)

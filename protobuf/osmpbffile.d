@@ -1,3 +1,19 @@
+/** Copyright (c) 2010 Scott A. Crosby. <scott@sacrosby.com>
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Lesser General Public License as 
+   published by the Free Software Foundation, either version 3 of the 
+   License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+*/
 module osmpbffile;
 import ProtocolBuffer.conversion.pbbinary;
 import std.conv;
@@ -14,17 +30,15 @@ string makeString(T)(T v) {
 struct Blob {
 	// deal with unknown fields
 	ubyte[] ufields;
-	///
-	Nullable!(ubyte[]) raw;
 	/// No compression
-	Nullable!(int) raw_size;
+	Nullable!(ubyte[]) raw;
 	/// When compressed, the uncompressed size
-
+	Nullable!(int) raw_size;
 	/// Possible compressed versions of the data.
 	Nullable!(ubyte[]) zlib_data;
 	/// PROPOSED feature for LZMA compressed data. SUPPORT IS NOT REQUIRED.
 	Nullable!(ubyte[]) lzma_data;
-	/// Formerly used for bzip2 compressed data. Depreciated in 2010.
+	/// Don't reuse this tag number.
 	deprecated ref Nullable!(ubyte[]) OBSOLETE_bzip2_data() {
 		return OBSOLETE_bzip2_data_dep;
 	}
@@ -133,9 +147,10 @@ struct Blob {
 	}
 
 }
-/// A file contains an sequence of fileblock headers, each prefixed by
-/// their length in network byte order, followed by a data block
-/// containing the actual data. types staring with a "_" are reserved.
+/* A file contains an sequence of fileblock headers, each prefixed by
+their length in network byte order, followed by a data block
+containing the actual data. types staring with a "_" are reserved.
+*/
 struct BlobHeader {
 	// deal with unknown fields
 	ubyte[] ufields;
