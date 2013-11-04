@@ -1,0 +1,23 @@
+{
+	"name": "osm",
+	"targetType": "library",
+	"license": "BSL-1.0",
+	"description": "An example project skeleton",
+	"homepage": "http://example.org",
+	"copyright": "Copyright © 2013, Jesse Phillips",
+	"authors": [
+		"Jesse Phillips"
+	],
+	"dependencies": {
+	},
+	"configurations": [
+		{
+			"name":"osmexample",
+			"targetName":"osmexample",
+			"targetType": "executable",
+			"importPaths": ["source","../protobuf"],
+			"lflags": ["-L../protobuf/ProtocolBuffer"],
+			"libs": ["dprotobuf"],
+		}
+	],
+}

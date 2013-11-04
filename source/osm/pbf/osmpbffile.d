@@ -14,7 +14,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
-module osmpbffile;
+module osm.pbf.osmpbffile;
 import ProtocolBuffer.conversion.pbbinary;
 import std.conv;
 import std.typecons;

@@ -37,8 +37,8 @@ import std.zlib;
 
 import util.filerange;
 
-import osmpbf;
-import osmpbffile;
+import osm.pbf.pb.osmpbf;
+import osm.pbf.pb.osmpbffile;
 
 // Converts ubyte num to proper endian
 // Used on initial 4 bytes before a HeaderBlock
