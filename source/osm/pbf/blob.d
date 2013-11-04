@@ -14,16 +14,16 @@ import osm.pbf.osmpbffile;
 // Converts ubyte num to proper endian
 // Used on initial 4 bytes before a HeaderBlock
 private int toNative(ubyte[] num) {
-    import std.system;
-    union Hold {
-        ubyte[4] arr;
-        int number;
-    }
-    Hold a;
-    a.arr = num;
-    version(LittleEndian)
-        a.arr[0..4].reverse();
-    return a.number;
+	import std.system;
+	union Hold {
+		ubyte[4] arr;
+		int number;
+	}
+	Hold a;
+	a.arr[] = num[];
+	version(LittleEndian)
+		a.arr[0..4].reverse();
+	return a.number;
 }
 
 enum supportedFeaturs = ["DenseNodes", "OsmSchema-V0.6"];
@@ -93,13 +93,19 @@ unittest {
 }
 
 auto osmBlob(string file) {
-    auto ans = OpenStreetMapBlob(FileRange(file));
+    auto ans = OpenStreetMapBlob!FileRange(FileRange(file));
     ans.prime();
     return ans;
 }
 
-struct OpenStreetMapBlob {
-    FileRange datastream;
+auto osmBlob(Range)(Range data) if(hasSlicing!Range && is(ElementType!Range == ubyte)) {
+	auto ans = OpenStreetMapBlob!Range(data);
+	ans.prime();
+	return ans;
+}
+
+struct OpenStreetMapBlob(Range) if(hasSlicing!Range) {
+    Range datastream;
     private BlobData bdata;
     private bool _empty;
 
@@ -135,7 +141,7 @@ struct OpenStreetMapBlob {
         datastream.popFrontN(4);
 
         // serialized BlobHeader message
-        auto osmData = datastream[0..size];
+        ubyte[] osmData = datastream[0..size];
         datastream.popFrontN(size);
         auto header = BlobHeader(osmData);
 

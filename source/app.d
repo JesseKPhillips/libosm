@@ -57,7 +57,7 @@ auto openStreetMapRange(string file) {
 }
 
 struct OpenStreetMapRange {
-    OpenStreetMapBlob fileHeadings;
+    OpenStreetMapBlob!FileRange fileHeadings;
     OpenStreetMapHeader header;
 
     auto empty() {
@@ -86,7 +86,7 @@ struct OpenStreetMapRange {
 }
 
 struct OpenStreetMapDataRange {
-    OpenStreetMapBlob fileHeadings;
+    OpenStreetMapBlob!FileRange fileHeadings;
 
     auto empty() {
         if(fileHeadings.empty || fileHeadings.front.type == BlobType.osmHeader)

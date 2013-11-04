@@ -5,16 +5,25 @@ import std.mmfile;
 struct FileRange {
 private:
 	size_t index;
-    MmFile file;
+	size_t end;
+	MmFile file;
+
 public:
+	alias toByte this;
+	ubyte[] toByte() {
+		return cast(ubyte[]) file[index..end];
+	}
+
 	static auto opCall(string file) {
 		FileRange fr;
 		fr.file = new MmFile(file);
+		fr.end = fr.file.length;
 		return fr;
 	}
 
-	auto empty() {
-		return file.length == index;
+	@property auto empty() {
+		assert(index <= end);
+		return index == end;
 	}
 
 	auto popFront() {
@@ -25,12 +34,21 @@ public:
 		return file[index];
 	}
 
-    auto length() {
-        return file.length - index;
-    }
+	@property auto length() {
+		return end - index;
+	}
 
 	auto opSlice(size_t x, size_t y) {
-        assert(y+index <= file.length);
-        return cast(ubyte[]) file[x+index..y+index];
+		import core.exception;
+		import std.exception;
+		enforceEx!RangeError(y+index <= end);
+		FileRange fr = this;
+		fr.end = y + index;
+		fr.index += x;
+		return fr;
+	}
+
+	@property auto save() {
+		return this;
 	}
 }
