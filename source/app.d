@@ -41,79 +41,10 @@ import osm.pbf.osmpbf;
 import osm.pbf.osmpbffile;
 import osm.pbf.blob;
 
-struct OpenStreetMapHeader {
-    HeaderBlock headerBlock;
-    ubyte[] index;
-    OpenStreetMapDataRange data;
-}
-
-auto openStreetMapRange(string file) {
-    // Need to figure out how to link header to data ranges
-    auto fileHeadings = osmBlob(file);
-    OpenStreetMapRange h;
-    h.fileHeadings = fileHeadings;
-    h.popFront();
-    return h;
-}
-
-struct OpenStreetMapRange {
-    OpenStreetMapBlob!FileRange fileHeadings;
-    OpenStreetMapHeader header;
-
-    auto empty() {
-        return fileHeadings.empty;
-    }
-
-    auto front() {
-        return header;
-    }
-
-    auto popFront() {
-        for(;!fileHeadings.empty; fileHeadings.popFront())
-            if(fileHeadings.front.type == BlobType.osmHeader)
-                break;
-        if(!fileHeadings.empty) {
-            header.headerBlock = to!HeaderBlock(fileHeadings.front);
-            header.index = fileHeadings.index;
-            fileHeadings.popFront();
-            header.data.fileHeadings = fileHeadings;
-        }
-    }
-
-    auto save() {
-        return this;
-    }
-}
-
-struct OpenStreetMapDataRange {
-    OpenStreetMapBlob!FileRange fileHeadings;
-
-    auto empty() {
-        if(fileHeadings.empty || fileHeadings.front.type == BlobType.osmHeader)
-            return true;
-        return false;
-    }
-
-    auto front() {
-        return to!PrimitiveBlock(fileHeadings.front);
-    }
-
-    auto popFront() {
-        fileHeadings.popFront();
-        for(;!fileHeadings.empty; fileHeadings.popFront())
-            if(fileHeadings.front.type == BlobType.osmData)
-                break;
-    }
-
-    auto save() {
-        return this;
-    }
-}
-
 void main(string[] args) {
     enforce(args.length == 2, "Usage: " ~ args[0] ~ " [file]");
     // A file contains a header followed by a sequence of fileblocks.
-    auto osmRange = openStreetMapRange(args[1]);
+    auto osmRange = osmBlob(args[1]);
 
     size_t headerCount, dataCount, bytesCount;
 
@@ -123,7 +54,7 @@ void main(string[] args) {
         writeln("Bytes: ", bytesCount);
     }
 
-    foreach(header; osmRange) {
+    foreach(blobData; osmRange) {
         // In order to robustly detect illegal or corrupt files, the maximum
         // size of BlobHeader and Blob messages is limited. The length of the
         // BlobHeader *should* be less than 32 KiB (32*1024 bytes) and *must*
@@ -137,18 +68,20 @@ void main(string[] args) {
         // The design lets other software extend the format to include
         // fileblocks of additional types for their own purposes. Parsers
         // should ignore and skip fileblock types that they do not recognize.
-        headerCount++;
-        // Contains a serialized HeaderBlock message (See osmformat.proto).
-        // Every file must have one of these blocks before the first
-        // 'OSMData' block.
-        auto osmHeader = header.headerBlock;
-        writeln("OSM bbox ", osmHeader.bbox);
-        writeln("OSM author ", osmHeader.writingprogram);
-        writeln("OSM required ", osmHeader.required_features);
-        if(!osmHeader.source.isNull)
-            writeln("OSM source ", osmHeader.source);
-        foreach(osmDataBlock; header.data) {
+        if(blobData.type == BlobType.osmHeader) {
+            headerCount++;
+            // Contains a serialized HeaderBlock message (See osmformat.proto).
+            // Every file must have one of these blocks before the first
+            // 'OSMData' block.
+            auto osmHeader = to!HeaderBlock(blobData);
+            writeln("OSM bbox ", osmHeader.bbox);
+            writeln("OSM author ", osmHeader.writingprogram);
+            writeln("OSM required ", osmHeader.required_features);
+            if(!osmHeader.source.isNull)
+                writeln("OSM source ", osmHeader.source);
+        } else if(blobData.type == BlobType.osmData) {
             dataCount++;
+            auto osmDataBlock = to!PrimitiveBlock(blobData);
             // Contains a serialized PrimitiveBlock message. (See
             // osmformat.proto). These contain the entities.
             writeln("OSM lat_off ", osmDataBlock.lat_offset);
