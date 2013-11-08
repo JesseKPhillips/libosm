@@ -137,18 +137,18 @@ struct OpenStreetMapBlob(Range) if(hasSlicing!Range) {
 
         // The format is a repeating sequence of:
         // * int4: length of the BlobHeader message in network byte order
-        auto size = toNative(datastream[0..4]);
+        auto size = toNative(datastream[0..4].array);
         datastream.popFrontN(4);
 
         // serialized BlobHeader message
-        ubyte[] osmData = datastream[0..size];
+        auto osmData = datastream[0..size].array;
         datastream.popFrontN(size);
         auto header = BlobHeader(osmData);
 
         // * serialized Blob message (size is given in the header)
         // Blob is currently used to store an arbitrary blob of data, either
         // uncompressed or in zlib/deflate compressed format.
-        osmData = datastream[0..header.datasize];
+        osmData = datastream[0..header.datasize].array;
         datastream.popFrontN(header.datasize);
         auto blob = Blob(osmData);
         // index may include metadata about the following blob

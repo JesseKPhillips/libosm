@@ -9,11 +9,6 @@ private:
 	MmFile file;
 
 public:
-	alias toByte this;
-	ubyte[] toByte() {
-		return cast(ubyte[]) file[index..end];
-	}
-
 	static auto opCall(string file) {
 		FileRange fr;
 		fr.file = new MmFile(file);
