@@ -8,14 +8,19 @@
 	"authors": [
 		"Jesse Phillips"
 	],
+	"importPaths": ["source","../protobuf"],
 	"dependencies": {
 	},
 	"configurations": [
 		{
+			"name":"libosm",
+			"targetName":"libosm",
+			"targetType": "library",
+		},
+		{
 			"name":"osmexample",
 			"targetName":"osmexample",
 			"targetType": "executable",
-			"importPaths": ["source","../protobuf"],
 			"lflags": ["-L../protobuf/ProtocolBuffer"],
 			"libs": ["dprotobuf"],
 		}
