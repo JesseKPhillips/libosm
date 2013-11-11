@@ -1,6 +1,9 @@
 /**
  * Explaination comments taken from:
- * http://wiki.openstreetmap.org/wiki/PBF_Format#Design
+ * http://wiki.openstreetmap.org/wiki/PBF#Design
+ *
+ * For learning the PBF format I suggest the original version:
+ * https://gist.github.com/JesseKPhillips/6051600
  *
  * This gives a very basic parsing of osm.pbf files. The purpose was several
  * fold.
@@ -10,12 +13,9 @@
  * - Verify the bytes match
  * - Test the Protocol Buffer compiler for D
  *
- * It uses a bremen file specified in the documentation (not tested with the
- * same version). This should allow others to examine the data and specific
- * bytes (through modification).
- *
  * This code does not provide any high level processing or logic. It only shows
- * the low-level access to the data.
+ * the low-level access to the data. It will access some tag data and display
+ * it to the screen.
  *
  * Definitions:
  * - Delta-encoding: consecutive nodes in a way or relation have a tendency
@@ -33,9 +33,6 @@ import std.range;
 import std.stdio : writeln, writefln, File;
 import std.string;
 import std.typecons;
-import std.zlib;
-
-import util.filerange;
 
 import osm.pbf.osmpbf;
 import osm.pbf.osmpbffile;
@@ -89,8 +86,8 @@ void main(string[] args) {
             writeln("OSM date ", !osmDataBlock.date_granularity.isNull);
 
             enforce(!osmDataBlock.stringtable.isNull);
-            auto stringTable = osmDataBlock.stringtable.s.get.
-                map!(x=>cast(char[])x);
+            auto stringTable = osmDataBlock.stringtable.s.get
+                .map!(x=>cast(char[])x);
             writeln("OSM String: ", stringTable.take(5), "...");
             writeln("OSM String Length: ", stringTable.length);
 
@@ -100,9 +97,9 @@ void main(string[] args) {
                 Node[] nodes = osmDataBlock.primitivegroup.front.nodes;
                 if(!nodes.front.keys.isNull)
                     writefln("Node Tags: %s...",
-                           zip(nodes.front.keys.get, nodes.front.vals.get).
-                           map!(x=>tuple(stringTable[x[0]], stringTable[x[1]])).
-                           map!(x=> x[0] ~"="~ x[1]).take(2));
+                           zip(nodes.front.keys.get, nodes.front.vals.get)
+                           .map!(x=>tuple(stringTable[x[0]], stringTable[x[1]]))
+                           .map!(x=> x[0] ~"="~ x[1]).take(2));
             }
             if(!osmDataBlock.primitivegroup.front.dense.isNull) {
                 // Keys and values for all nodes are encoded as a single array
@@ -112,10 +109,10 @@ void main(string[] args) {
                 // begin. The storage pattern is: ((<keyid> <valid>)* '0' )*
                 DenseNodes nodes = osmDataBlock.primitivegroup.front.dense;
                 if(!nodes.keys_vals.isNull) {
-                    auto nodeTags = nodes.keys_vals.get().
-                        splitter(0).array.front.chunks(2).
-                        map!(x=>tuple(stringTable[x[0]],stringTable[x[1]])).
-                        map!(x=> x[0] ~"="~ x[1]).take(2);
+                    auto nodeTags = nodes.keys_vals.get()
+                        .splitter(0).array.front.chunks(2)
+                        .map!(x=>tuple(stringTable[x[0]],stringTable[x[1]]))
+                        .map!(x=> x[0] ~"="~ x[1]).take(2);
                     if(!nodeTags.empty)
                         writefln("Node Tags: %s...", nodeTags);
                 }
@@ -124,9 +121,9 @@ void main(string[] args) {
                 Way[] ways = osmDataBlock.primitivegroup.front.ways;
                 if(!ways.front.keys.isNull)
                     writefln("Way Tags: %s...",
-                             zip(ways.front.keys.get, ways.front.vals.get).
-                             map!(x=>tuple(stringTable[x[0]],stringTable[x[1]])).
-                             map!(x=> x[0] ~"="~ x[1]).take(2));
+                             zip(ways.front.keys.get, ways.front.vals.get)
+                             .map!(x=>tuple(stringTable[x[0]],stringTable[x[1]]))
+                             .map!(x=> x[0] ~"="~ x[1]).take(2));
             }
             if(!osmDataBlock.primitivegroup.front.relations.isNull) {
                 Relation[] relations =
@@ -134,9 +131,9 @@ void main(string[] args) {
                 if(!relations.front.keys.isNull)
                     writefln("Relation Tags: %s...",
                              zip(relations.front.keys.get,
-                                 relations.front.vals.get).
-                             map!(x=>tuple(stringTable[x[0]],stringTable[x[1]])).
-                             map!(x=> x[0] ~"="~ x[1]).take(2));
+                                 relations.front.vals.get)
+                             .map!(x=>tuple(stringTable[x[0]],stringTable[x[1]]))
+                             .map!(x=> x[0] ~"="~ x[1]).take(2));
             }
 
             writeln("==============");

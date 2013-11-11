@@ -47,10 +47,12 @@ package struct BlobData {
 
     // Returns the decompressed PB encoded data
     ubyte[] rawData() {
-        if(compressed)
-            return cast(ubyte[]) uncompress(data);
-        else
-            return data;
+        if(compressed) {
+            data = cast(ubyte[]) uncompress(data);
+            compressed = false;
+        }
+
+        return data;
     }
 
     /// contains the type of data in this block message.

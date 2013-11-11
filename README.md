@@ -11,6 +11,9 @@ than brute forcing my way through the information. This way, when I inevitably
 stop working on it, the library is possibly usable for other situations or
 desires.
 
+[Blog entries](http://he-the-great.livejournal.com/tag/openstreetmap) taged
+with openstreetmap may be related to work done in this project.
+
 ## Status
 * Provides a range of [PBF](http://wiki.openstreetmap.org/wiki/PBF) data
   structures.
@@ -23,9 +26,9 @@ Build: $ dub build
 
 Build library: $ dub build --config=libosm
 
-Build example: $ dub build --config=osmexample
+Build example: $ dub build --config=dump
 
-Example is run: ./osmexample planet.osm.pbf (don't do this at home)
+Example is run: ./dump planet.osm.pbf (don't do this at home)
 
 ## License
 [Boost 1.0](http://www.boost.org/LICENSE_1_0.txt)
