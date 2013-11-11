@@ -2,8 +2,8 @@
 	"name": "osm",
 	"targetType": "library",
 	"license": "BSL-1.0",
-	"description": "An example project skeleton",
-	"homepage": "http://example.org",
+	"description": "Library written in D for parsing OpenStreetMap data",
+	"homepage": "https://github.com/JesseKPhillips/libosm",
 	"copyright": "Copyright © 2013, Jesse Phillips",
 	"authors": [
 		"Jesse Phillips"
@@ -13,8 +13,8 @@
 	},
 	"configurations": [
 		{
-			"name":"libosm",
-			"targetName":"libosm",
+			"name":"osm",
+			"targetName":"osm",
 			"targetType": "library",
 		},
 		{
