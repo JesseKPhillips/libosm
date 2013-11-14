@@ -1,0 +1,10 @@
+{
+	"name":"dump",
+	"targetType": "executable",
+	"lflags": ["-L../../../protobuf/ProtocolBuffer"],
+	"libs": ["dprotobuf"],
+	"importPaths": ["source","../../../protobuf"],
+	"dependencies": {
+		"libosm": {"version": "~master", "path": "../../"}
+	}
+}

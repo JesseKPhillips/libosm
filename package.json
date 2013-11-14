@@ -1,5 +1,6 @@
 {
-	"name": "osm",
+	"name": "libosm",
+	"targetName":"osm",
 	"targetType": "library",
 	"license": "BSL-1.0",
 	"description": "Library written in D for parsing OpenStreetMap data",
@@ -9,23 +10,4 @@
 		"Jesse Phillips"
 	],
 	"importPaths": ["source","../protobuf"],
-	"dependencies": {
-	},
-	"configurations": [
-		{
-			"name":"osm",
-			"targetName":"osm",
-			"targetType": "library",
-		},
-		{
-			"name":"dump",
-			"targetName":"dump",
-			"targetType": "executable",
-			"sourcePaths": ["examples/dump"],
-			"lflags": ["-L../protobuf/ProtocolBuffer"],
-			"libs": ["dprotobuf"],
-			"lflags": ["-L../protobuf/ProtocolBuffer"],
-			"libs": ["dprotobuf"],
-		}
-	],
 }
