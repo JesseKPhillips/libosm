@@ -95,7 +95,7 @@ unittest {
 }
 
 auto osmBlob(string file) {
-    auto ans = OpenStreetMapBlob!FileRange(FileRange(file));
+    auto ans = OpenStreetMapBlob!(FileRange!ubyte)(fileRange(file));
     ans.prime();
     return ans;
 }
